@@ -8,100 +8,115 @@ import voluptuous as vol
 from typing import Any, Dict, Optional
 
 from homeassistant import config_entries
-from homeassistant.core import callback
+from homeassistant.const import CONF_HOST, CONF_NAME
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-import async_timeout
+from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN
-from homeassistant.const import CONF_HOST, CONF_NAME
+from . import DOMAIN, DEFAULT_NAME
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_NAME = "AquaLevel"
+DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_HOST): str,
+        vol.Optional(CONF_NAME, default=DEFAULT_NAME): str,
+    }
+)
 
-def _validate_host(host: str) -> bool:
-    """Validate the given host string."""
-    return isinstance(host, str) and len(host) > 0
-
-async def _try_connect(hass, host: str) -> bool:
-    """Try connecting to the AquaLevel device."""
-    session = async_get_clientsession(hass)
-    
-    # Try connecting to the status endpoint
-    for endpoint in ["/tank-data", "/settings", "/status"]:
-        try:
-            async with async_timeout.timeout(5):
-                url = f"http://{host}{endpoint}"
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        try:
-                            await response.json()
-                            return True
-                        except:
-                            pass
-        except (asyncio.TimeoutError, aiohttp.ClientError):
-            continue
-    
-    return False
+class CannotConnect(HomeAssistantError):
+    """Error to indicate we cannot connect."""
 
 class AquaLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for AquaLevel."""
     VERSION = 1
+    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
         """Handle the initial step."""
         errors = {}
 
         if user_input is not None:
-            host = user_input[CONF_HOST]
-            name = user_input.get(CONF_NAME, DEFAULT_NAME)
-            
-            if _validate_host(host):
-                # Check if we can connect to the device
-                if await _try_connect(self.hass, host):
-                    await self.async_set_unique_id(host)
-                    self._abort_if_unique_id_configured()
-                    
-                    data = {CONF_HOST: host}
-                    if name:
-                        data[CONF_NAME] = name
-                        
-                    return self.async_create_entry(
-                        title=name or host, 
-                        data=data
-                    )
-                else:
-                    errors[CONF_HOST] = "cannot_connect"
-            else:
-                errors[CONF_HOST] = "invalid_host"
-
-        # Show the form
-        schema = vol.Schema({
-            vol.Required(CONF_HOST): str,
-            vol.Optional(CONF_NAME): str,
-        })
+            try:
+                info = await self._validate_input(user_input)
+                
+                # Set this as the unique ID
+                await self.async_set_unique_id(user_input[CONF_HOST])
+                self._abort_if_unique_id_configured()
+                
+                return self.async_create_entry(
+                    title=info["title"],
+                    data=user_input
+                )
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
 
         return self.async_show_form(
-            step_id="user", 
-            data_schema=schema, 
+            step_id="user",
+            data_schema=DATA_SCHEMA,
             errors=errors
         )
 
+    async def _validate_input(self, data):
+        """Validate the user input allows us to connect."""
+        host = data[CONF_HOST]
+        name = data.get(CONF_NAME, DEFAULT_NAME)
+        
+        # Verify that we can connect to the device
+        session = async_get_clientsession(self.hass)
+        
+        try:
+            # First try tank-data endpoint
+            tank_url = f"http://{host}/tank-data"
+            async with session.get(tank_url, timeout=10) as response:
+                if response.status != 200:
+                    raise CannotConnect
+                
+                # Try to parse response
+                try:
+                    await response.json()
+                except:
+                    # If not JSON, see if we get a valid response at all
+                    text = await response.text()
+                    if not text:
+                        raise CannotConnect
+                    
+        except (asyncio.TimeoutError, aiohttp.ClientError):
+            # If tank-data fails, try settings endpoint
+            try:
+                settings_url = f"http://{host}/settings"
+                async with session.get(settings_url, timeout=10) as response:
+                    if response.status != 200:
+                        raise CannotConnect
+                    await response.json()
+            except (asyncio.TimeoutError, aiohttp.ClientError, ValueError):
+                raise CannotConnect
+            
+        # If we get here, the connection was successful
+        return {
+            "title": name
+        }
+
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: config_entries.ConfigEntry):
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> OptionsFlowHandler:
         """Return the options flow handler."""
-        return AquaLevelOptionsFlowHandler(config_entry)
+        return OptionsFlowHandler(config_entry)
 
-class AquaLevelOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle AquaLevel options."""
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options for AquaLevel."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
         self.config_entry = config_entry
 
     async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
-        """Manage AquaLevel options."""
+        """Manage the options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
