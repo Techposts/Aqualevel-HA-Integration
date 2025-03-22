@@ -3,96 +3,19 @@
     "step": {
       "user": {
         "title": "Connect to AquaLevel",
-        "description": "Enter the IP address or hostname (e.g., aqualevel-garden.local) of your AquaLevel device",
+        "description": "Set up AquaLevel Water Tank Monitor",
         "data": {
-          "host": "IP address or hostname",
-          "name": "Device Name (optional)"
+          "host": "IP address",
+          "name": "Name"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to device, please check the IP address or hostname",
-      "invalid_host": "Invalid IP address or hostname format",
+      "cannot_connect": "Failed to connect",
       "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "Device is already configured",
-      "cannot_connect": "Cannot connect to the device"
-    }
-  },
-  "entity": {
-    "sensor": {
-      "distance": {
-        "name": "Distance"
-      },
-      "water_level": {
-        "name": "Water Level"
-      },
-      "water_percentage": {
-        "name": "Water Percentage"
-      },
-      "water_volume": {
-        "name": "Water Volume"
-      },
-      "tank_capacity": {
-        "name": "Tank Capacity"
-      },
-      "measurement_interval": {
-        "name": "Measurement Interval"
-      }
-    },
-    "binary_sensor": {
-      "low_water_alert": {
-        "name": "Low Water Alert"
-      },
-      "high_water_alert": {
-        "name": "High Water Alert"
-      }
-    },
-    "number": {
-      "tank_height": {
-        "name": "Tank Height"
-      },
-      "tank_diameter": {
-        "name": "Tank Diameter"
-      },
-      "tank_volume": {
-        "name": "Tank Volume"
-      },
-      "sensor_offset": {
-        "name": "Sensor Offset"
-      },
-      "empty_distance": {
-        "name": "Empty Distance"
-      },
-      "full_distance": {
-        "name": "Full Distance"
-      },
-      "measurement_interval": {
-        "name": "Measurement Interval"
-      },
-      "reading_smoothing": {
-        "name": "Reading Smoothing"
-      },
-      "alert_level_low": {
-        "name": "Low Alert Level"
-      },
-      "alert_level_high": {
-        "name": "High Alert Level"
-      }
-    },
-    "switch": {
-      "alerts_enabled": {
-        "name": "Alerts Enabled"
-      }
-    },
-    "button": {
-      "calibrate_empty_tank": {
-        "name": "Calibrate Empty Tank"
-      },
-      "calibrate_full_tank": {
-        "name": "Calibrate Full Tank"
-      }
+      "already_configured": "Device is already configured"
     }
   }
 }
