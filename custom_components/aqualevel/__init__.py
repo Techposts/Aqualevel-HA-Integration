@@ -38,6 +38,11 @@ SCAN_INTERVAL = timedelta(seconds=30)
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the AquaLevel component."""
     hass.data.setdefault(DOMAIN, {})
+    
+    # Register services
+    from .service import async_setup_services
+    await async_setup_services(hass)
+    
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
