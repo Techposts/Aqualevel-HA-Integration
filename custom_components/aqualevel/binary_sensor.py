@@ -1,4 +1,4 @@
-"""AquaLevel binary sensor platform for water level alerts."""
+"""AquaLevel binary sensor platform."""
 import logging
 
 from homeassistant.components.binary_sensor import (
@@ -11,9 +11,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity import DeviceInfo
 
-from . import DOMAIN, AquaLevelDataUpdateCoordinator
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -37,7 +38,7 @@ class AquaLevelAlertBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
     def __init__(
         self, 
-        coordinator: AquaLevelDataUpdateCoordinator,
+        coordinator,
         name_suffix: str,
         key: str,
         icon: str = None,
