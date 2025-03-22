@@ -1,4 +1,4 @@
-"""AquaLevel number platform for configurable settings."""
+"""AquaLevel number platform."""
 import logging
 
 from homeassistant.components.number import NumberEntity
@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity import DeviceInfo
 
-from . import DOMAIN, AquaLevelDataUpdateCoordinator
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class AquaLevelNumberEntity(CoordinatorEntity, NumberEntity):
 
     def __init__(
         self, 
-        coordinator: AquaLevelDataUpdateCoordinator,
+        coordinator,
         name_suffix: str,
         key: str,
         minimum: float,
@@ -90,6 +90,7 @@ class AquaLevelNumberEntity(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value):
         """Set new value."""
+        _LOGGER.debug(f"Setting {self._service_param} to {value}")
         await self.coordinator.async_update_settings(**{self._service_param: value})
 
 
