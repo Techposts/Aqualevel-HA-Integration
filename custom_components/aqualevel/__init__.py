@@ -34,8 +34,8 @@ DOMAIN = "aqualevel"
 DEFAULT_NAME = "AquaLevel"
 DATA_UPDATED = f"{DOMAIN}_data_updated"
 
-# Add platforms
-PLATFORMS = ["sensor", "number", "switch", "binary_sensor"]
+# Add platforms - Make sure to include the button platform
+PLATFORMS = ["sensor", "number", "switch", "binary_sensor", "button"]
 
 # Configuration schema
 CONFIG_SCHEMA = vol.Schema(
