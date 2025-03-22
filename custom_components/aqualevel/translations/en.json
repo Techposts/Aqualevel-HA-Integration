@@ -53,6 +53,14 @@
       "full_distance": {
         "name": "Full Distance"
       }
+    },
+    "button": {
+      "calibrate_empty_tank": {
+        "name": "Calibrate Empty Tank"
+      },
+      "calibrate_full_tank": {
+        "name": "Calibrate Full Tank"
+      }
     }
   }
 }
