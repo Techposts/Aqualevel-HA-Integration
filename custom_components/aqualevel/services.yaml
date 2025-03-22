@@ -1,0 +1,142 @@
+calibrate:
+  name: Calibrate Tank Level
+  description: Calibrate the tank sensor for empty or full level
+  target:
+    entity:
+      integration: aqualevel
+      domain: sensor
+  fields:
+    calibration_type:
+      name: Calibration Type
+      description: Type of calibration to perform
+      required: true
+      example: "empty"
+      selector:
+        select:
+          options:
+            - "empty"
+            - "full"
+
+update_settings:
+  name: Update AquaLevel Settings
+  description: Update various settings for the AquaLevel water tank monitor
+  target:
+    entity:
+      integration: aqualevel
+      domain: sensor
+  fields:
+    tank_height:
+      name: Tank Height
+      description: Height of the water tank
+      example: 100
+      selector:
+        number:
+          min: 10
+          max: 500
+          unit_of_measurement: cm
+          mode: box
+
+    tank_diameter:
+      name: Tank Diameter
+      description: Diameter of the water tank
+      example: 50
+      selector:
+        number:
+          min: 10
+          max: 500
+          unit_of_measurement: cm
+          mode: box
+
+    tank_volume:
+      name: Tank Volume
+      description: Total volume of the water tank
+      example: 200
+      selector:
+        number:
+          min: 1
+          max: 10000
+          unit_of_measurement: L
+          mode: box
+
+    sensor_offset:
+      name: Sensor Offset
+      description: Distance from sensor to maximum water level
+      example: 5
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: cm
+          mode: box
+
+    empty_distance:
+      name: Empty Distance
+      description: Distance reading when tank is empty
+      example: 95
+      selector:
+        number:
+          min: 10
+          max: 500
+          unit_of_measurement: cm
+          mode: box
+
+    full_distance:
+      name: Full Distance
+      description: Distance reading when tank is full
+      example: 5
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: cm
+          mode: box
+
+    measurement_interval:
+      name: Measurement Interval
+      description: Time between measurements
+      example: 5
+      selector:
+        number:
+          min: 1
+          max: 3600
+          unit_of_measurement: s
+          mode: box
+
+    reading_smoothing:
+      name: Reading Smoothing
+      description: Number of readings to average
+      example: 5
+      selector:
+        number:
+          min: 1
+          max: 50
+          mode: box
+
+    alert_level_low:
+      name: Low Alert Level
+      description: Percentage for low water alert
+      example: 10
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+          mode: box
+
+    alert_level_high:
+      name: High Alert Level
+      description: Percentage for high water alert
+      example: 90
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+          mode: box
+
+    alerts_enabled:
+      name: Alerts Enabled
+      description: Enable or disable alerts
+      example: true
+      selector:
+        boolean:
