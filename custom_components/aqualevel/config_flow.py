@@ -1,17 +1,17 @@
 """Config flow for AquaLevel integration."""
+from __future__ import annotations
+
 import asyncio
 import logging
 import aiohttp
 import voluptuous as vol
-from typing import Any, Dict, Optional
+from typing import Any
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_NAME
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.data_entry_flow import FlowResult
-from homeassistant.helpers import device_registry as dr
 from homeassistant.components import zeroconf
 
 from . import DOMAIN, DEFAULT_NAME
@@ -25,21 +25,63 @@ DATA_SCHEMA = vol.Schema(
     }
 )
 
+
 class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
 
 class AquaLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for AquaLevel."""
-    
+
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
-    
+
     def __init__(self):
         """Initialize the config flow."""
         self._discovered_devices = {}
         self._host = None
         self._name = None
+
+    async def async_step_user(self, user_input=None) -> FlowResult:
+        """Handle the initial step."""
+        errors = {}
+
+        # Try to discover devices first
+        if user_input is None:  # Only discover if no input yet
+            try:
+                self._discovered_devices = await self._discover_devices()
+                
+                # If discovered devices exist, show discovery step
+                if self._discovered_devices:
+                    return await self.async_step_device_selection()
+            except Exception as e:
+                _LOGGER.error(f"Discovery error: {e}")
+                # Continue with manual entry if discovery fails
+
+        # Manual configuration
+        if user_input is not None:
+            try:
+                # Set this as the unique ID
+                await self.async_set_unique_id(user_input[CONF_HOST])
+                self._abort_if_unique_id_configured()
+                
+                # Try to connect to validate
+                info = await self._validate_input(user_input)
+                
+                return self.async_create_entry(
+                    title=info["title"],
+                    data=user_input
+                )
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=DATA_SCHEMA,
+            errors=errors
+        )
 
     async def async_step_zeroconf(self, discovery_info: zeroconf.ZeroconfServiceInfo) -> FlowResult:
         """Handle zeroconf discovery."""
@@ -87,48 +129,6 @@ class AquaLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="discovery_confirm",
             description_placeholders={"name": self._name},
             data_schema=vol.Schema({})
-        )
-
-    async def async_step_user(self, user_input=None) -> FlowResult:
-        """Handle the initial step."""
-        errors = {}
-        
-        # Try to discover devices first
-        if user_input is None:  # Only discover if no input yet
-            try:
-                self._discovered_devices = await self._discover_devices()
-                
-                # If discovered devices exist, show discovery step
-                if self._discovered_devices:
-                    return await self.async_step_device_selection()
-            except Exception as e:
-                _LOGGER.error(f"Discovery error: {e}")
-                # Continue with manual entry if discovery fails
-
-        # Manual configuration
-        if user_input is not None:
-            try:
-                # Set this as the unique ID
-                await self.async_set_unique_id(user_input[CONF_HOST])
-                self._abort_if_unique_id_configured()
-                
-                # Try to connect to validate
-                info = await self._validate_input(user_input)
-                
-                return self.async_create_entry(
-                    title=info["title"],
-                    data=user_input
-                )
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=DATA_SCHEMA,
-            errors=errors
         )
 
     async def async_step_device_selection(self, user_input=None) -> FlowResult:
