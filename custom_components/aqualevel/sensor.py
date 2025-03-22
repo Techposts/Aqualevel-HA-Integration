@@ -32,6 +32,7 @@ async def async_setup_entry(
         AquaLevelDistanceSensor(coordinator),
         AquaLevelWaterLevelSensor(coordinator),
         AquaLevelWaterPercentageSensor(coordinator),
+        AquaLevelWaterVolumeSensor(coordinator),
     ]
     
     async_add_entities(entities)
@@ -133,4 +134,20 @@ class AquaLevelWaterPercentageSensor(AquaLevelSensorBase):
             state_class=SensorStateClass.MEASUREMENT,
             unit_of_measurement=PERCENTAGE,
             icon="mdi:water-percent",
+        )
+
+
+class AquaLevelWaterVolumeSensor(AquaLevelSensorBase):
+    """Representation of the current water volume in the tank."""
+
+    def __init__(self, coordinator):
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator=coordinator,
+            name_suffix="Water Volume",
+            key="volume",
+            device_class=SensorDeviceClass.VOLUME,
+            state_class=SensorStateClass.MEASUREMENT,
+            unit_of_measurement=VOLUME_LITERS,
+            icon="mdi:cup-water",
         )
