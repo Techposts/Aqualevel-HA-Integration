@@ -29,8 +29,8 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "aqualevel"
 DEFAULT_NAME = "AquaLevel"
 
-# Define platforms - starting with just sensors and numbers
-PLATFORMS = ["sensor", "number"]
+# Define platforms - sensors, numbers, and buttons
+PLATFORMS = ["sensor", "number", "button"]
 
 # Scan interval (how often to poll the device)
 SCAN_INTERVAL = timedelta(seconds=30)
