@@ -15,6 +15,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
+    UnitOfLength,
+    PERCENTAGE,
+    VOLUME_LITERS,
 )
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -22,15 +25,30 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 from homeassistant.exceptions import ConfigEntryNotReady
+import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
 # Define platform names
 DOMAIN = "aqualevel"
 DEFAULT_NAME = "AquaLevel"
+DATA_UPDATED = f"{DOMAIN}_data_updated"
 
-# Define platforms - sensors, numbers, and buttons
-PLATFORMS = ["sensor", "number", "button"]
+# Add all platforms
+PLATFORMS = ["sensor", "number", "button", "binary_sensor", "switch"]
+
+# Configuration schema
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Required(CONF_HOST): cv.string,
+                vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
 
 # Scan interval (how often to poll the device)
 SCAN_INTERVAL = timedelta(seconds=30)
@@ -67,6 +85,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
+        
+        # If this is the last entry, unload services
+        if not hass.data[DOMAIN]:
+            from .service import async_unload_services
+            await async_unload_services(hass)
+            
     return unload_ok
 
 class AquaLevelDataUpdateCoordinator(DataUpdateCoordinator):
@@ -98,7 +122,14 @@ class AquaLevelDataUpdateCoordinator(DataUpdateCoordinator):
                 self.available = False
                 raise UpdateFailed("Failed to update data from AquaLevel device")
             
-            # Combine the data with default values for missing items
+            # Use previous settings data if new fetch failed
+            if settings is None and hasattr(self, "data") and "tankHeight" in self.data:
+                settings = {
+                    k: v for k, v in self.data.items() 
+                    if k not in ["distance", "waterLevel", "percentage", "volume"]
+                }
+            
+            # Combine the data (with defaults for missing values)
             data = {}
             
             # Add tank data values
@@ -116,9 +147,14 @@ class AquaLevelDataUpdateCoordinator(DataUpdateCoordinator):
                     "tankHeight": settings.get("tankHeight", 100),
                     "tankDiameter": settings.get("tankDiameter", 50),
                     "tankVolume": settings.get("tankVolume", 200),
+                    "sensorOffset": settings.get("sensorOffset", 5),
                     "emptyDistance": settings.get("emptyDistance", 95),
                     "fullDistance": settings.get("fullDistance", 5),
                     "measurementInterval": settings.get("measurementInterval", 5),
+                    "readingSmoothing": settings.get("readingSmoothing", 5),
+                    "alertLevelLow": settings.get("alertLevelLow", 10),
+                    "alertLevelHigh": settings.get("alertLevelHigh", 90),
+                    "alertsEnabled": settings.get("alertsEnabled", True),
                 })
             
             self.available = True
@@ -160,25 +196,65 @@ class AquaLevelDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Error parsing settings JSON: %s", err)
             return None
 
-    async def async_update_setting(self, param, value):
-        """Update a single device setting."""
-        _LOGGER.debug(f"Updating AquaLevel setting: {param}={value}")
+    async def async_update_settings(self, **kwargs):
+        """Update device settings."""
+        _LOGGER.debug(f"Updating AquaLevel settings: {kwargs}")
         
-        url = f"http://{self.host}/set?{param}={value}"
+        # Prepare parameters for API
+        params = {}
+        
+        # Map parameters from HA to device format
+        param_map = {
+            'tank_height': 'tankHeight',
+            'tank_diameter': 'tankDiameter',
+            'tank_volume': 'tankVolume',
+            'sensor_offset': 'sensorOffset',
+            'empty_distance': 'emptyDistance',
+            'full_distance': 'fullDistance',
+            'measurement_interval': 'measurementInterval',
+            'reading_smoothing': 'readingSmoothing',
+            'alert_level_low': 'alertLevelLow',
+            'alert_level_high': 'alertLevelHigh',
+            'alerts_enabled': 'alertsEnabled',
+        }
+        
+        # Map parameters
+        for ha_param, device_param in param_map.items():
+            if ha_param in kwargs:
+                value = kwargs[ha_param]
+                
+                # Convert booleans to integers for the API
+                if isinstance(value, bool):
+                    value = 1 if value else 0
+                    
+                params[device_param] = value
+        
+        if not params:
+            _LOGGER.warning("No valid parameters to update")
+            return False
+        
+        # Construct query string
+        param_strings = [f"{k}={v}" for k, v in params.items()]
+        url = f"http://{self.host}/set?{('&'.join(param_strings))}"
+        
+        _LOGGER.debug(f"Sending update request to: {url}")
         
         try:
             async with self.session.get(url, timeout=10) as resp:
                 if resp.status == 200:
+                    response_text = await resp.text()
+                    _LOGGER.debug(f"Device response: {response_text}")
+                    
                     # Trigger immediate data refresh
                     await self.async_refresh()
                     return True
                 else:
-                    _LOGGER.error(f"Failed to update setting. Status: {resp.status}")
+                    _LOGGER.error(f"Failed to update settings. Status: {resp.status}")
                     return False
         except Exception as err:
-            _LOGGER.error(f"Error updating setting: {err}")
+            _LOGGER.error(f"Error updating settings: {err}")
             return False
-            
+
     async def async_calibrate(self, calibration_type):
         """Calibrate the tank sensor."""
         if calibration_type not in ["empty", "full"]:
@@ -190,6 +266,9 @@ class AquaLevelDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             async with self.session.get(url, timeout=10) as resp:
                 if resp.status == 200:
+                    response_text = await resp.text()
+                    _LOGGER.debug(f"Calibration response: {response_text}")
+                    
                     # Trigger immediate data refresh
                     await self.async_refresh()
                     return True
