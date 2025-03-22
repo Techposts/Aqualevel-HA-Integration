@@ -1,4 +1,4 @@
-"""AquaLevel button platform for calibration."""
+"""AquaLevel button platform."""
 import logging
 
 from homeassistant.components.button import ButtonEntity
@@ -8,7 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity import DeviceInfo
 
-from . import DOMAIN, AquaLevelDataUpdateCoordinator
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class AquaLevelCalibrateEmptyButton(CoordinatorEntity, ButtonEntity):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: AquaLevelDataUpdateCoordinator):
+    def __init__(self, coordinator):
         """Initialize the button."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.host}_calibrate_empty"
@@ -50,6 +50,7 @@ class AquaLevelCalibrateEmptyButton(CoordinatorEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle the button press."""
+        _LOGGER.debug("Calibrating empty tank")
         await self.coordinator.async_calibrate("empty")
 
 
@@ -58,7 +59,7 @@ class AquaLevelCalibrateFullButton(CoordinatorEntity, ButtonEntity):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: AquaLevelDataUpdateCoordinator):
+    def __init__(self, coordinator):
         """Initialize the button."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.host}_calibrate_full"
@@ -76,4 +77,5 @@ class AquaLevelCalibrateFullButton(CoordinatorEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Handle the button press."""
+        _LOGGER.debug("Calibrating full tank")
         await self.coordinator.async_calibrate("full")
