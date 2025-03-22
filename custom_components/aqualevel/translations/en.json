@@ -3,33 +3,21 @@
     "step": {
       "user": {
         "title": "Connect to AquaLevel",
-        "description": "Set up AquaLevel to monitor your water tank level",
+        "description": "Enter the IP address or hostname (e.g., aqualevel-garden.local) of your AquaLevel device",
         "data": {
           "host": "IP address or hostname",
           "name": "Device Name (optional)"
         }
-      },
-      "device_selection": {
-        "title": "Select AquaLevel Device",
-        "description": "Choose from the discovered AquaLevel devices:",
-        "data": {
-          "device": "Device"
-        }
-      },
-      "discovery_confirm": {
-        "title": "Confirm AquaLevel Device",
-        "description": "Do you want to set up {name}?"
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect, please check the device",
+      "cannot_connect": "Failed to connect to device, please check the IP address or hostname",
+      "invalid_host": "Invalid IP address or hostname format",
       "unknown": "Unexpected error"
     },
     "abort": {
       "already_configured": "Device is already configured",
-      "cannot_connect": "Cannot connect to the device",
-      "unknown": "Unexpected error occurred",
-      "not_aqualevel_device": "Discovered device is not an AquaLevel device"
+      "cannot_connect": "Cannot connect to the device"
     }
   },
   "entity": {
