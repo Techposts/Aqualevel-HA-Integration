@@ -4,7 +4,6 @@ calibrate:
   target:
     entity:
       integration: aqualevel
-      domain: sensor
   fields:
     calibration_type:
       name: Calibration Type
@@ -23,7 +22,6 @@ update_settings:
   target:
     entity:
       integration: aqualevel
-      domain: sensor
   fields:
     tank_height:
       name: Tank Height
