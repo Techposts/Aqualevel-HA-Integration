@@ -1,188 +1,78 @@
-"""AquaLevel sensor platform for water level and volume readings."""
+"""Platform for AquaLevel sensor integration."""
 import logging
+import asyncio
+from datetime import timedelta
 
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntity,
-    SensorStateClass,
-)
-from homeassistant.const import (
-    UnitOfLength, 
-    PERCENTAGE, 
-    VOLUME_LITERS,
-    UnitOfTime,
-)
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.const import PERCENTAGE
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from . import DOMAIN, AquaLevelDataUpdateCoordinator
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+SCAN_INTERVAL = timedelta(seconds=30)
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
-    """Set up AquaLevel sensors from a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    """Set up AquaLevel sensor based on a config entry."""
+    host = entry.data["host"]
+    session = async_get_clientsession(hass)
     
-    entities = [
-        AquaLevelDistanceSensor(coordinator),
-        AquaLevelWaterLevelSensor(coordinator),
-        AquaLevelWaterPercentageSensor(coordinator),
-        AquaLevelWaterVolumeSensor(coordinator),
-        AquaLevelTankCapacitySensor(coordinator),
-        AquaLevelMeasurementIntervalSensor(coordinator),
-    ]
-    
-    async_add_entities(entities)
+    async_add_entities([AquaLevelSensor(host, session)], True)
 
+class AquaLevelSensor(SensorEntity):
+    """Representation of an AquaLevel sensor."""
 
-class AquaLevelSensorBase(CoordinatorEntity, SensorEntity):
-    """Base class for AquaLevel sensors."""
-
-    _attr_has_entity_name = True
-
-    def __init__(
-        self, 
-        coordinator: AquaLevelDataUpdateCoordinator,
-        name_suffix: str,
-        key: str,
-        device_class: str = None,
-        state_class: str = None,
-        unit_of_measurement: str = None,
-        icon: str = None,
-    ):
+    def __init__(self, host, session):
         """Initialize the sensor."""
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.host}_{key}"
-        self._attr_name = name_suffix
-        self._key = key
-        
-        if device_class:
-            self._attr_device_class = device_class
-        if state_class:
-            self._attr_state_class = state_class
-        if unit_of_measurement:
-            self._attr_native_unit_of_measurement = unit_of_measurement
-        if icon:
-            self._attr_icon = icon
-            
-        # Device info for device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, coordinator.host)},
-            name=coordinator.name,
-            manufacturer="TechPosts Media",
-            model="AquaLevel Water Tank Monitor",
-            sw_version="1.0",
-        )
+        self._host = host
+        self._session = session
+        self._name = "AquaLevel Water Percentage"
+        self._attr_unique_id = f"{host}_water_percentage"
+        self._attr_native_unit_of_measurement = PERCENTAGE
+        self._attr_should_poll = True
+        self._available = True
+        self._state = None
+        self._attr_icon = "mdi:water-percent"
 
     @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.data is not None and self._key in self.coordinator.data
+    def name(self):
+        """Return the name of the sensor."""
+        return self._name
+
+    @property
+    def available(self):
+        """Return True if entity is available."""
+        return self._available
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        if self.coordinator.data is None or self._key not in self.coordinator.data:
-            return None
-        return self.coordinator.data[self._key]
+        return self._state
 
-
-class AquaLevelDistanceSensor(AquaLevelSensorBase):
-    """Representation of the distance measurement from the ultrasonic sensor."""
-
-    def __init__(self, coordinator):
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name_suffix="Distance",
-            key="distance",
-            device_class=SensorDeviceClass.DISTANCE,
-            state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=UnitOfLength.CENTIMETERS,
-            icon="mdi:ruler",
-        )
-
-
-class AquaLevelWaterLevelSensor(AquaLevelSensorBase):
-    """Representation of the water level height in the tank."""
-
-    def __init__(self, coordinator):
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name_suffix="Water Level",
-            key="waterLevel",
-            device_class=SensorDeviceClass.DISTANCE,
-            state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=UnitOfLength.CENTIMETERS,
-            icon="mdi:water",
-        )
-
-
-class AquaLevelWaterPercentageSensor(AquaLevelSensorBase):
-    """Representation of the water level as a percentage."""
-
-    def __init__(self, coordinator):
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name_suffix="Water Percentage",
-            key="percentage",
-            state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=PERCENTAGE,
-            icon="mdi:water-percent",
-        )
-
-
-class AquaLevelWaterVolumeSensor(AquaLevelSensorBase):
-    """Representation of the current water volume in the tank."""
-
-    def __init__(self, coordinator):
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name_suffix="Water Volume",
-            key="volume",
-            device_class=SensorDeviceClass.VOLUME,
-            state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=VOLUME_LITERS,
-            icon="mdi:cup-water",
-        )
-
-
-class AquaLevelTankCapacitySensor(AquaLevelSensorBase):
-    """Representation of the tank's total capacity."""
-
-    def __init__(self, coordinator):
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name_suffix="Tank Capacity",
-            key="tankVolume",
-            device_class=SensorDeviceClass.VOLUME,
-            state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=VOLUME_LITERS,
-            icon="mdi:tank",
-        )
-
-
-class AquaLevelMeasurementIntervalSensor(AquaLevelSensorBase):
-    """Representation of the measurement interval setting."""
-
-    def __init__(self, coordinator):
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name_suffix="Measurement Interval",
-            key="measurementInterval",
-            device_class=SensorDeviceClass.DURATION,
-            state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=UnitOfTime.SECONDS,
-            icon="mdi:timer-outline",
-        )
+    async def async_update(self):
+        """Get the latest data and update states."""
+        try:
+            url = f"http://{self._host}/tank-data"
+            async with self._session.get(url, timeout=10) as resp:
+                if resp.status == 200:
+                    try:
+                        data = await resp.json()
+                        self._state = data.get("percentage")
+                        self._available = True
+                        _LOGGER.debug(f"Data update successful: {data}")
+                    except:
+                        # Try to parse as text if not json
+                        text = await resp.text()
+                        _LOGGER.debug(f"Response not JSON, got: {text}")
+                        self._available = False
+                else:
+                    self._available = False
+        except Exception as err:
+            _LOGGER.error(f"Error fetching data: {err}")
+            self._available = False
