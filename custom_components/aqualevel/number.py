@@ -2,7 +2,7 @@
 import logging
 
 from homeassistant.components.number import NumberEntity
-from homeassistant.const import UnitOfLength, VOLUME_LITERS, UnitOfTime
+from homeassistant.const import UnitOfLength, PERCENTAGE, VOLUME_LITERS, UnitOfTime
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -23,8 +23,14 @@ async def async_setup_entry(
     entities = [
         AquaLevelTankHeightNumber(coordinator),
         AquaLevelTankDiameterNumber(coordinator),
+        AquaLevelTankVolumeNumber(coordinator),
+        AquaLevelSensorOffsetNumber(coordinator),
         AquaLevelEmptyDistanceNumber(coordinator),
         AquaLevelFullDistanceNumber(coordinator),
+        AquaLevelMeasurementIntervalNumber(coordinator),
+        AquaLevelReadingSmoothingNumber(coordinator),
+        AquaLevelAlertLevelLowNumber(coordinator),
+        AquaLevelAlertLevelHighNumber(coordinator),
     ]
     
     async_add_entities(entities)
@@ -45,7 +51,7 @@ class AquaLevelNumberEntity(CoordinatorEntity, NumberEntity):
         step: float,
         unit: str = None,
         icon: str = None,
-        param_name: str = None
+        service_param: str = None
     ):
         """Initialize the number entity."""
         super().__init__(coordinator)
@@ -55,7 +61,7 @@ class AquaLevelNumberEntity(CoordinatorEntity, NumberEntity):
         self._attr_native_min_value = minimum
         self._attr_native_max_value = maximum
         self._attr_native_step = step
-        self._param_name = param_name or key
+        self._service_param = service_param or key
         if unit:
             self._attr_native_unit_of_measurement = unit
         if icon:
@@ -84,7 +90,7 @@ class AquaLevelNumberEntity(CoordinatorEntity, NumberEntity):
 
     async def async_set_native_value(self, value):
         """Set new value."""
-        await self.coordinator.async_update_setting(self._param_name, value)
+        await self.coordinator.async_update_settings(**{self._service_param: value})
 
 
 class AquaLevelTankHeightNumber(AquaLevelNumberEntity):
@@ -101,7 +107,7 @@ class AquaLevelTankHeightNumber(AquaLevelNumberEntity):
             step=0.1,
             unit=UnitOfLength.CENTIMETERS,
             icon="mdi:arrow-up-down",
-            param_name="tankHeight"
+            service_param="tank_height"
         )
 
 
@@ -119,7 +125,43 @@ class AquaLevelTankDiameterNumber(AquaLevelNumberEntity):
             step=0.1,
             unit=UnitOfLength.CENTIMETERS,
             icon="mdi:arrow-left-right",
-            param_name="tankDiameter"
+            service_param="tank_diameter"
+        )
+
+
+class AquaLevelTankVolumeNumber(AquaLevelNumberEntity):
+    """Representation of the tank volume setting."""
+
+    def __init__(self, coordinator):
+        """Initialize the entity."""
+        super().__init__(
+            coordinator=coordinator,
+            name_suffix="Tank Volume",
+            key="tankVolume",
+            minimum=1,
+            maximum=10000,
+            step=0.1,
+            unit=VOLUME_LITERS,
+            icon="mdi:tank",
+            service_param="tank_volume"
+        )
+
+
+class AquaLevelSensorOffsetNumber(AquaLevelNumberEntity):
+    """Representation of the sensor offset setting."""
+
+    def __init__(self, coordinator):
+        """Initialize the entity."""
+        super().__init__(
+            coordinator=coordinator,
+            name_suffix="Sensor Offset",
+            key="sensorOffset",
+            minimum=0,
+            maximum=100,
+            step=0.1,
+            unit=UnitOfLength.CENTIMETERS,
+            icon="mdi:arrow-collapse-up",
+            service_param="sensor_offset"
         )
 
 
@@ -137,7 +179,7 @@ class AquaLevelEmptyDistanceNumber(AquaLevelNumberEntity):
             step=0.1,
             unit=UnitOfLength.CENTIMETERS,
             icon="mdi:signal-distance-variant",
-            param_name="emptyDistance"
+            service_param="empty_distance"
         )
 
 
@@ -155,5 +197,76 @@ class AquaLevelFullDistanceNumber(AquaLevelNumberEntity):
             step=0.1,
             unit=UnitOfLength.CENTIMETERS,
             icon="mdi:signal-distance-variant",
-            param_name="fullDistance"
+            service_param="full_distance"
+        )
+
+
+class AquaLevelMeasurementIntervalNumber(AquaLevelNumberEntity):
+    """Representation of the measurement interval setting."""
+
+    def __init__(self, coordinator):
+        """Initialize the entity."""
+        super().__init__(
+            coordinator=coordinator,
+            name_suffix="Measurement Interval",
+            key="measurementInterval",
+            minimum=1,
+            maximum=3600,
+            step=1,
+            unit=UnitOfTime.SECONDS,
+            icon="mdi:timer-outline",
+            service_param="measurement_interval"
+        )
+
+
+class AquaLevelReadingSmoothingNumber(AquaLevelNumberEntity):
+    """Representation of the reading smoothing setting."""
+
+    def __init__(self, coordinator):
+        """Initialize the entity."""
+        super().__init__(
+            coordinator=coordinator,
+            name_suffix="Reading Smoothing",
+            key="readingSmoothing",
+            minimum=1,
+            maximum=50,
+            step=1,
+            icon="mdi:chart-bell-curve",
+            service_param="reading_smoothing"
+        )
+
+
+class AquaLevelAlertLevelLowNumber(AquaLevelNumberEntity):
+    """Representation of the low alert level setting."""
+
+    def __init__(self, coordinator):
+        """Initialize the entity."""
+        super().__init__(
+            coordinator=coordinator,
+            name_suffix="Low Alert Level",
+            key="alertLevelLow",
+            minimum=0,
+            maximum=100,
+            step=1,
+            unit=PERCENTAGE,
+            icon="mdi:alert-outline",
+            service_param="alert_level_low"
+        )
+
+
+class AquaLevelAlertLevelHighNumber(AquaLevelNumberEntity):
+    """Representation of the high alert level setting."""
+
+    def __init__(self, coordinator):
+        """Initialize the entity."""
+        super().__init__(
+            coordinator=coordinator,
+            name_suffix="High Alert Level",
+            key="alertLevelHigh",
+            minimum=0,
+            maximum=100,
+            step=1,
+            unit=PERCENTAGE,
+            icon="mdi:alert-outline",
+            service_param="alert_level_high"
         )
