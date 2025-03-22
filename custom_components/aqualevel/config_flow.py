@@ -29,7 +29,7 @@ class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
 
-class AquaLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for AquaLevel."""
     
     VERSION = 1
