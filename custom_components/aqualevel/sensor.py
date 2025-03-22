@@ -10,7 +10,6 @@ from homeassistant.const import (
     UnitOfLength, 
     PERCENTAGE, 
     VOLUME_LITERS,
-    UnitOfTime,
 )
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.core import HomeAssistant
@@ -33,9 +32,6 @@ async def async_setup_entry(
         AquaLevelDistanceSensor(coordinator),
         AquaLevelWaterLevelSensor(coordinator),
         AquaLevelWaterPercentageSensor(coordinator),
-        AquaLevelWaterVolumeSensor(coordinator),
-        AquaLevelTankCapacitySensor(coordinator),
-        AquaLevelMeasurementIntervalSensor(coordinator),
     ]
     
     async_add_entities(entities)
@@ -137,52 +133,4 @@ class AquaLevelWaterPercentageSensor(AquaLevelSensorBase):
             state_class=SensorStateClass.MEASUREMENT,
             unit_of_measurement=PERCENTAGE,
             icon="mdi:water-percent",
-        )
-
-
-class AquaLevelWaterVolumeSensor(AquaLevelSensorBase):
-    """Representation of the current water volume in the tank."""
-
-    def __init__(self, coordinator):
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name_suffix="Water Volume",
-            key="volume",
-            device_class=SensorDeviceClass.VOLUME,
-            state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=VOLUME_LITERS,
-            icon="mdi:cup-water",
-        )
-
-
-class AquaLevelTankCapacitySensor(AquaLevelSensorBase):
-    """Representation of the tank's total capacity."""
-
-    def __init__(self, coordinator):
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name_suffix="Tank Capacity",
-            key="tankVolume",
-            device_class=SensorDeviceClass.VOLUME,
-            state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=VOLUME_LITERS,
-            icon="mdi:tank",
-        )
-
-
-class AquaLevelMeasurementIntervalSensor(AquaLevelSensorBase):
-    """Representation of the measurement interval setting."""
-
-    def __init__(self, coordinator):
-        """Initialize the sensor."""
-        super().__init__(
-            coordinator=coordinator,
-            name_suffix="Measurement Interval",
-            key="measurementInterval",
-            device_class=SensorDeviceClass.DURATION,
-            state_class=SensorStateClass.MEASUREMENT,
-            unit_of_measurement=UnitOfTime.SECONDS,
-            icon="mdi:timer-outline",
         )
