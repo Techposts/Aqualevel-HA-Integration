@@ -62,9 +62,21 @@ class AquaLevelAlertBinarySensor(CoordinatorEntity, BinarySensorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        required_keys = ["percentage", "alertLevelLow", "alertLevelHigh", "alertsEnabled"]
-        return (self.coordinator.data is not None and 
-                all(key in self.coordinator.data for key in required_keys))
+        if not self.coordinator.data:
+            return False
+            
+        # Check for required data to determine alert state
+        required_keys = ["percentage"]
+        if not all(key in self.coordinator.data for key in required_keys):
+            return False
+            
+        # Check alert threshold values are available
+        if self._key == "low_water_alert" and "alertLevelLow" not in self.coordinator.data:
+            return False
+        if self._key == "high_water_alert" and "alertLevelHigh" not in self.coordinator.data:
+            return False
+            
+        return True
 
 
 class AquaLevelLowWaterAlert(AquaLevelAlertBinarySensor):
