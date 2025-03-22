@@ -1,4 +1,4 @@
-"""Config flow for AquaLevel integration with mDNS discovery."""
+"""Config flow for AquaLevel integration."""
 import asyncio
 import logging
 import aiohttp
@@ -28,8 +28,10 @@ DATA_SCHEMA = vol.Schema(
 class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
-class AquaLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for AquaLevel."""
+    
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
     
