@@ -11,33 +11,34 @@ from homeassistant.const import (
     UnitOfTime,
 )
 
-from . import DOMAIN, AquaLevelDataUpdateCoordinator
+from .const import (
+    DOMAIN,
+    SERVICE_CALIBRATE,
+    SERVICE_UPDATE_SETTINGS,
+    ATTR_ENTITY_ID,
+    ATTR_CALIBRATION_TYPE,
+    ATTR_TANK_HEIGHT,
+    ATTR_TANK_DIAMETER,
+    ATTR_TANK_VOLUME,
+    ATTR_SENSOR_OFFSET,
+    ATTR_EMPTY_DISTANCE,
+    ATTR_FULL_DISTANCE,
+    ATTR_MEASUREMENT_INTERVAL,
+    ATTR_READING_SMOOTHING,
+    ATTR_ALERT_LEVEL_LOW,
+    ATTR_ALERT_LEVEL_HIGH,
+    ATTR_ALERTS_ENABLED,
+    CALIBRATION_EMPTY,
+    CALIBRATION_FULL,
+)
 
 _LOGGER = logging.getLogger(__name__)
-
-SERVICE_CALIBRATE = "calibrate"
-SERVICE_UPDATE_SETTINGS = "update_settings"
-
-# Parameter constants
-ATTR_ENTITY_ID = "entity_id"
-ATTR_CALIBRATION_TYPE = "calibration_type"
-ATTR_TANK_HEIGHT = "tank_height"
-ATTR_TANK_DIAMETER = "tank_diameter"
-ATTR_TANK_VOLUME = "tank_volume"
-ATTR_SENSOR_OFFSET = "sensor_offset"
-ATTR_EMPTY_DISTANCE = "empty_distance"
-ATTR_FULL_DISTANCE = "full_distance"
-ATTR_MEASUREMENT_INTERVAL = "measurement_interval"
-ATTR_READING_SMOOTHING = "reading_smoothing"
-ATTR_ALERT_LEVEL_LOW = "alert_level_low"
-ATTR_ALERT_LEVEL_HIGH = "alert_level_high"
-ATTR_ALERTS_ENABLED = "alerts_enabled"
 
 # Schema for the calibrate service
 CALIBRATE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
-        vol.Required(ATTR_CALIBRATION_TYPE): vol.In(["empty", "full"]),
+        vol.Required(ATTR_CALIBRATION_TYPE): vol.In([CALIBRATION_EMPTY, CALIBRATION_FULL]),
     }
 )
 
@@ -73,8 +74,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Find valid coordinators from entities
         coordinators = []
         for entry_id, coordinator in hass.data[DOMAIN].items():
-            if isinstance(coordinator, AquaLevelDataUpdateCoordinator):
-                coordinators.append(coordinator)
+            coordinators.append(coordinator)
         
         if not coordinators:
             _LOGGER.warning("No AquaLevel device found for service call")
@@ -94,8 +94,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Find valid coordinators from entities
         coordinators = []
         for entry_id, coordinator in hass.data[DOMAIN].items():
-            if isinstance(coordinator, AquaLevelDataUpdateCoordinator):
-                coordinators.append(coordinator)
+            coordinators.append(coordinator)
         
         if not coordinators:
             _LOGGER.warning("No AquaLevel device found for service call")
