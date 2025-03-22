@@ -1,3 +1,4 @@
+"""Config flow for AquaLevel integration."""
 from __future__ import annotations
 
 import asyncio
@@ -16,6 +17,8 @@ from .const import DOMAIN
 from homeassistant.const import CONF_HOST, CONF_NAME
 
 _LOGGER = logging.getLogger(__name__)
+
+DEFAULT_NAME = "AquaLevel"
 
 def _validate_host(host: str) -> bool:
     """Validate the given host string."""
@@ -43,16 +46,16 @@ async def _try_connect(hass, host: str) -> bool:
     return False
 
 class AquaLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Aqua Level."""
+    """Handle a config flow for AquaLevel."""
     VERSION = 1
 
     async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
-        """Handle the user-initiated config flow."""
+        """Handle the initial step."""
         errors = {}
 
         if user_input is not None:
             host = user_input[CONF_HOST]
-            name = user_input.get(CONF_NAME)
+            name = user_input.get(CONF_NAME, DEFAULT_NAME)
             
             if _validate_host(host):
                 # Check if we can connect to the device
@@ -79,7 +82,11 @@ class AquaLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(CONF_NAME): str,
         })
 
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="user", 
+            data_schema=schema, 
+            errors=errors
+        )
 
     @staticmethod
     @callback
@@ -88,11 +95,17 @@ class AquaLevelConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return AquaLevelOptionsFlowHandler(config_entry)
 
 class AquaLevelOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle Aqua Level options."""
+    """Handle AquaLevel options."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         self.config_entry = config_entry
 
     async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
-        """Manage Aqua Level options."""
-        return self.async_create_entry(title="", data={})
+        """Manage AquaLevel options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({})
+        )
