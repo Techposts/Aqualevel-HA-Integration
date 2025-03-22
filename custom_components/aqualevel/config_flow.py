@@ -38,6 +38,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Initialize the config flow."""
+        self._discovered_devices = {}
         self._host = None
         self._name = None
 
@@ -45,6 +46,19 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         errors = {}
 
+        # Try to discover devices first
+        if user_input is None:  # Only discover if no input yet
+            try:
+                self._discovered_devices = await self._discover_devices()
+                
+                # If discovered devices exist, show discovery step
+                if self._discovered_devices:
+                    return await self.async_step_device_selection()
+            except Exception as e:
+                _LOGGER.error(f"Discovery error: {e}")
+                # Continue with manual entry if discovery fails
+
+        # Manual configuration
         if user_input is not None:
             try:
                 # Set this as the unique ID
@@ -117,7 +131,83 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={"name": self._name},
             data_schema=vol.Schema({})
         )
+
+    async def async_step_device_selection(self, user_input=None) -> FlowResult:
+        """Handle device selection step after discovery."""
+        if user_input is not None:
+            selected_device = user_input.get('device')
+            if selected_device:
+                # Get the IP for the selected device
+                host = self._discovered_devices[selected_device]
+                
+                try:
+                    # Try to connect to validate
+                    info = await self._validate_input({
+                        CONF_HOST: host, 
+                        CONF_NAME: selected_device
+                    })
+                    
+                    # Create configuration entry
+                    await self.async_set_unique_id(host)
+                    self._abort_if_unique_id_configured()
+
+                    return self.async_create_entry(
+                        title=info["title"],
+                        data={
+                            CONF_HOST: host,
+                            CONF_NAME: selected_device
+                        }
+                    )
+                except CannotConnect:
+                    return self.async_show_form(
+                        step_id="device_selection",
+                        data_schema=vol.Schema({
+                            vol.Required('device'): vol.In(list(self._discovered_devices.keys()))
+                        }),
+                        errors={"base": "cannot_connect"}
+                    )
+                except Exception:
+                    _LOGGER.exception("Unexpected exception")
+                    return self.async_show_form(
+                        step_id="device_selection",
+                        data_schema=vol.Schema({
+                            vol.Required('device'): vol.In(list(self._discovered_devices.keys()))
+                        }),
+                        errors={"base": "unknown"}
+                    )
         
+        # Show discovered devices
+        return self.async_show_form(
+            step_id="device_selection",
+            data_schema=vol.Schema({
+                vol.Required('device'): vol.In(list(self._discovered_devices.keys()))
+            }),
+            description_placeholders={
+                "devices": "\n".join(self._discovered_devices.keys())
+            }
+        )
+        
+    async def _discover_devices(self):
+        """Discover AquaLevel devices on the network."""
+        discovered_devices = {}
+        
+        # Try to directly resolve common aqualevel hostnames
+        common_locations = ["watertank", "home", "tank", "garden", "rainwater", "garage", "basement"]
+        for location in common_locations:
+            hostname = f"aqualevel-{location}"
+            try:
+                import socket
+                addr_info = await self.hass.async_add_executor_job(
+                    socket.gethostbyname, f"{hostname}.local"
+                )
+                if addr_info:
+                    discovered_devices[hostname] = addr_info
+            except Exception:
+                # Just skip if can't resolve
+                pass
+                    
+        return discovered_devices
+    
     async def _validate_input(self, data):
         """Validate the user input allows us to connect."""
         host = data[CONF_HOST]
