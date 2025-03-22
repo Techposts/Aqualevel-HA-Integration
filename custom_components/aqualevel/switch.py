@@ -1,4 +1,4 @@
-"""AquaLevel switch platform for toggling alerts."""
+"""AquaLevel switch platform."""
 import logging
 import asyncio
 
@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity import DeviceInfo
 
-from . import DOMAIN, AquaLevelDataUpdateCoordinator
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class AquaLevelAlertsEnabledSwitch(CoordinatorEntity, SwitchEntity):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: AquaLevelDataUpdateCoordinator):
+    def __init__(self, coordinator):
         """Initialize the switch entity."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.host}_alerts_enabled"
@@ -62,6 +62,7 @@ class AquaLevelAlertsEnabledSwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Turn the switch on."""
+        _LOGGER.debug("Turning on alerts")
         await self.coordinator.async_update_settings(alerts_enabled=True)
         
         # Optimistically update state
@@ -73,6 +74,7 @@ class AquaLevelAlertsEnabledSwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs):
         """Turn the switch off."""
+        _LOGGER.debug("Turning off alerts")
         await self.coordinator.async_update_settings(alerts_enabled=False)
         
         # Optimistically update state
