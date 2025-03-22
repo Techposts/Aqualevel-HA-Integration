@@ -9,6 +9,13 @@
           "name": "Device Name (optional)"
         }
       },
+      "device_selection": {
+        "title": "Select AquaLevel Device",
+        "description": "Choose from the discovered AquaLevel devices:",
+        "data": {
+          "device": "Device"
+        }
+      },
       "discovery_confirm": {
         "title": "Confirm AquaLevel Device",
         "description": "Do you want to set up {name}?"
@@ -38,6 +45,20 @@
       },
       "water_volume": {
         "name": "Water Volume"
+      },
+      "tank_capacity": {
+        "name": "Tank Capacity"
+      },
+      "measurement_interval": {
+        "name": "Measurement Interval"
+      }
+    },
+    "binary_sensor": {
+      "low_water_alert": {
+        "name": "Low Water Alert"
+      },
+      "high_water_alert": {
+        "name": "High Water Alert"
       }
     },
     "number": {
@@ -47,11 +68,34 @@
       "tank_diameter": {
         "name": "Tank Diameter"
       },
+      "tank_volume": {
+        "name": "Tank Volume"
+      },
+      "sensor_offset": {
+        "name": "Sensor Offset"
+      },
       "empty_distance": {
         "name": "Empty Distance"
       },
       "full_distance": {
         "name": "Full Distance"
+      },
+      "measurement_interval": {
+        "name": "Measurement Interval"
+      },
+      "reading_smoothing": {
+        "name": "Reading Smoothing"
+      },
+      "alert_level_low": {
+        "name": "Low Alert Level"
+      },
+      "alert_level_high": {
+        "name": "High Alert Level"
+      }
+    },
+    "switch": {
+      "alerts_enabled": {
+        "name": "Alerts Enabled"
       }
     },
     "button": {
